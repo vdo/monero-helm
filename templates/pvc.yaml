@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: monero-pvc
+spec:
+  accessModes:
+    - {{ .Values.storage.accessMode }}
+  storageClassName: {{ .Values.storage.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.storageSize }}

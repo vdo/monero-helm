@@ -1,0 +1,8 @@
+apiVersion: v2
+name: monero
+description: A Monero node Helm chart for Kubernetes
+type: application
+icon: https://www.getmonero.org/press-kit/symbols/monero-symbol-480.png
+
+version: 0.1.0
+appVersion: 0.17.1.9

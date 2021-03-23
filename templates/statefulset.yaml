@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "monero.fullname" . }}
+  labels:
+    {{- include "monero.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "monero.fullname" . }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "monero.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "monero.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:v{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{ if eq .Values.monero.testnet true }}
+          args: ["--testnet","--data-dir","/monero"]
+          ports:
+            - name: rpc
+              containerPort: {{ .Values.service.testnetRpcPort }}
+              protocol: TCP
+            - name: p2p
+              containerPort: {{ .Values.service.testnetP2pPort }}
+              protocol: TCP
+          env:
+            - name: RPC_BIND_PORT
+              value: "{{ .Values.service.testnetRpcPort }}"
+            - name: P2P_BIND_PORT
+              value: "{{ .Values.service.testnetP2pPort }}"
+          {{ else if eq  .Values.monero.stagenet true }}
+          args: ["--stagenet","--data-dir","/monero"]
+          ports:
+            - name: rpc
+              containerPort: {{ .Values.service.stagenetRpcPort }}
+              protocol: TCP
+            - name: p2p
+              containerPort: {{ .Values.service.stagenetP2pPort }}
+              protocol: TCP
+          env:
+            - name: RPC_BIND_PORT
+              value: "{{ .Values.service.stagenetRpcPort }}"
+            - name: P2P_BIND_PORT
+              value: "{{ .Values.service.stagenetP2pPort }}"
+          {{ else }}
+          args: ["--data-dir","/monero"]
+          ports:
+            - name: rpc
+              containerPort: {{ .Values.service.rpcPort }}
+              protocol: TCP
+            - name: p2p
+              containerPort: {{ .Values.service.p2pPort }}
+              protocol: TCP
+          env:
+            - name: RPC_BIND_PORT
+              value: "{{ .Values.service.rpcPort }}"
+            - name: P2P_BIND_PORT
+              value: "{{ .Values.service.p2pPort }}"
+          {{ end }}
+            - name: RPC_BIND_IP
+              value: "0.0.0.0"
+            - name: P2P_BIND_IP
+              value: "0.0.0.0"
+            - name: RPC_USER
+              value: "{{ .Values.monero.rpcUser  }}"
+            - name: RPC_PASSWORD
+              value: "{{ .Values.monero.rpcPassword  }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.monero.logLevel }}"
+          volumeMounts:
+            - name: monero-data
+              mountPath: /monero
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - name: monero-data
+        persistentVolumeClaim:
+          claimName: monero-pvc
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000

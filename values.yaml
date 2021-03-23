@@ -1,0 +1,37 @@
+# Default values for monero.
+image:
+  repository: xmrto/monero
+  tag: ""
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+monero:
+  # Can be: mainnet, testnet, stagenet. Any other value will default to mainnet
+  testnet: false
+  stagenet: false
+  rpcUser: ""
+  rpcPassword: ""
+  logLevel: "0"
+  #use_torsocks: false
+  #use_torproxy: false
+
+storage:
+  storageClass: standard
+  accessMode: ReadWriteOnce
+  storageSize: 120Gi
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: {}
+  rpcPort: 18081
+  p2pPort: 18080
+  testnetRpcPort: 28081
+  testnetP2pPort: 28080
+  stagenetRpcPort: 38081
+  stagenetP2pPort: 38080
+
+resources: {}
