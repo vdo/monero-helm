@@ -1,8 +1,18 @@
 apiVersion: v2
+appVersion: v0.18.2.0
+description: A Helm chart for Monero node
+icon: https://commons.wikimedia.org/wiki/File:Font_Awesome_5_brands_monero.svg
+home: https://getmonero.org/
+keywords:
+- monero
+- xmr
+- blockchain
+- privacy
+maintainers:
+- email: vdo1138@rbx.run
+  name: vdo 1138
 name: monero
-description: A Monero node Helm chart for Kubernetes
+sources:
+- https://github.com/vdo/monero-chart
 type: application
-icon: https://www.getmonero.org/press-kit/symbols/monero-symbol-480.png
-
 version: 0.1.0
-appVersion: 0.17.1.9

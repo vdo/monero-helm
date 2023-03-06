@@ -1,3 +1,4 @@
-# Monero Helm
+# monero-helm
+Helm chart deploy Monero in your cluster.
 
-A Monero node Helm chart for Kubernetes
+(WIP)

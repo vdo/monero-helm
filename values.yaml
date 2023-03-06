@@ -1,37 +1,119 @@
-# Default values for monero.
-image:
-  repository: xmrto/monero
-  tag: ""
-  pullPolicy: IfNotPresent
-
 replicaCount: 1
 
-monero:
-  # Can be: mainnet, testnet, stagenet. Any other value will default to mainnet
-  testnet: false
-  stagenet: false
-  rpcUser: ""
-  rpcPassword: ""
-  logLevel: "0"
-  #use_torsocks: false
-  #use_torproxy: false
+image:
+  repository: sethsimmons/simple-monerod
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "v0.18.2.0"
+  # command: ["--rpc-restricted-bind-ip=0.0.0.0", "--rpc-restricted-bind-port=18089", "--no-igd", "--enable-dns-blocklist"]
+  # The following args will be passed as extra parameters. Some will be already defined by default.
+  args: [] 
 
-storage:
-  storageClass: standard
-  accessMode: ReadWriteOnce
-  storageSize: 120Gi
+config:
+  network:
+  zmq: true
+  prune: false
+
+labels: {}
 
 imagePullSecrets: []
 nameOverride: ""
+cluster: monero
 fullnameOverride: ""
 
+volumes:
+  data:
+    mountPath: /home/monero/.bitmonero
+
+persistence:
+  enabled: true
+  annotations: {}
+  accessModes:
+    - ReadWriteOnce
+  size: 150Gi # Mainnet minimum required size
+  # storageClass: gp2
+
+  # existingClaim:
+
+  # hostPath:
+  #   path: /root/.bitmonero
+  #   type: Directory
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+
+container:
+  ports:
+    rpcrestricted: 18089
+    rpc: 18081
+    zmq: 18082
+    zmqpub: 18083
+    p2p: 31080
+
 service:
-  type: {}
-  rpcPort: 18081
-  p2pPort: 18080
-  testnetRpcPort: 28081
-  testnetP2pPort: 28080
-  stagenetRpcPort: 38081
-  stagenetP2pPort: 38080
+  type: ClusterIP
+  rpcrestricted: 18089
+  rpc: 18081
+  zmq: 18082
+  zmqpub: 18083
+
+serviceP2P:
+  type: NodePort
+  #type: LoadBalancer  # Use it in cloud environments to expose the P2P port and contribute to the network
+  p2p: 31080  # The standard 18080 is too low for k8s, not allowed.
+
+ingress:
+  # This Ingress resource will be enabled for the restricted RPC only
+  enabled: false
+  # annotations: 
+  #   cert-manager.io/cluster-issuer: letsencrypt
+  #   kubernetes.io/ingress.class: nginx
+  #   kubernetes.io/tls-acme: "true"
+  # hosts:
+  #   - host: node.xmr.sh
+  #     paths: 
+  #       - path: "/"
+  #         pathType: Prefix
+  # tls: 
+  #   - secretName: monero-tls
+  #     hosts:
+  #       - node.xmr.sh
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
 
 resources: {}
+  # requests:
+  #   cpu: 1000m
+  #   memory: 1.5G
+  # limits:
+  #   cpu: 4000m
+  #   memory: 3G
+# nodeSelector:
+#   monero/role: node
+tolerations: []
+
+affinity: {}

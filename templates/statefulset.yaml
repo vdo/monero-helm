@@ -4,90 +4,148 @@ metadata:
   name: {{ include "monero.fullname" . }}
   labels:
     {{- include "monero.labels" . | nindent 4 }}
+    {{- with .Values.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
-  serviceName: {{ include "monero.fullname" . }}
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "monero.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "monero.fullname" . }}
   template:
     metadata:
-    {{- with .Values.podAnnotations }}
       annotations:
+      {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- end }}
       labels:
         {{- include "monero.selectorLabels" . | nindent 8 }}
+        {{- with .Values.labels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "monero.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:v{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{ if eq .Values.monero.testnet true }}
-          args: ["--testnet","--data-dir","/monero"]
+          command: [
+            "monerod",
+            "--non-interactive",
+            "--no-igd",
+            "--enable-dns-blocklist",
+            "--confirm-external-bind",
+            "--rpc-restricted-bind-ip=0.0.0.0",
+            "--rpc-restricted-bind-port={{ .Values.container.ports.rpcrestricted }}",
+            "--rpc-bind-port={{ .Values.container.ports.rpc }}",
+            "--rpc-bind-ip=0.0.0.0",
+            "--p2p-bind-port={{ .Values.container.ports.p2p }}",
+            "--p2p-bind-ip=0.0.0.0",
+            "--p2p-external-port={{ .Values.container.ports.p2p }}",
+            {{- if  .Values.config.zmq }}
+            "--zmq-pub=tcp://0.0.0.0:{{ .Values.container.ports.zmqpub }}",
+            "--zmq-rpc-bind-port={{ .Values.container.ports.zmq }}",
+            "--zmq-rpc-bind-ip=0.0.0.0",
+            {{- end }}
+            {{- if  .Values.config.prune }}
+            "--prune-blockchain",
+            {{- end }}
+            ]
+          args: 
+            {{- toYaml .Values.image.args | nindent 12 }}
           ports:
             - name: rpc
-              containerPort: {{ .Values.service.testnetRpcPort }}
+              containerPort: {{ .Values.container.ports.rpc }}
+              {{ if eq .Values.serviceP2P.type "hostPort" }}
+              hostPort: {{ .Values.container.ports.rpc }}
+              {{ end }}
               protocol: TCP
+            - name: rpcrestricted
+              containerPort: {{ .Values.container.ports.rpcrestricted }}
+              {{ if eq .Values.serviceP2P.type "hostPort" }}
+              hostPort: {{ .Values.container.ports.rpcrestricted }}
+              {{ end }}
+              protocol: TCP
+            {{- if  .Values.config.zmq }}
+            - name: zmq
+              containerPort: {{ .Values.container.ports.zmq }}
+              {{ if eq .Values.serviceP2P.type "hostPort" }}
+              hostPort: {{ .Values.container.ports.zmq }}
+              {{ end }}
+              protocol: TCP
+            - name: zmqpub
+              containerPort: {{ .Values.container.ports.zmqpub }}
+              {{ if eq .Values.serviceP2P.type "hostPort" }}
+              hostPort: {{ .Values.container.ports.zmqpub }}
+              {{ end }}
+              protocol: TCP
+            {{- end }}
             - name: p2p
-              containerPort: {{ .Values.service.testnetP2pPort }}
+              containerPort: {{ .Values.container.ports.p2p }}
+              {{ if eq .Values.serviceP2P.type "hostPort" }}
+              hostPort: {{ .Values.container.ports.p2p }}
+              {{ end }}
               protocol: TCP
-          env:
-            - name: RPC_BIND_PORT
-              value: "{{ .Values.service.testnetRpcPort }}"
-            - name: P2P_BIND_PORT
-              value: "{{ .Values.service.testnetP2pPort }}"
-          {{ else if eq  .Values.monero.stagenet true }}
-          args: ["--stagenet","--data-dir","/monero"]
-          ports:
-            - name: rpc
-              containerPort: {{ .Values.service.stagenetRpcPort }}
-              protocol: TCP
-            - name: p2p
-              containerPort: {{ .Values.service.stagenetP2pPort }}
-              protocol: TCP
-          env:
-            - name: RPC_BIND_PORT
-              value: "{{ .Values.service.stagenetRpcPort }}"
-            - name: P2P_BIND_PORT
-              value: "{{ .Values.service.stagenetP2pPort }}"
-          {{ else }}
-          args: ["--data-dir","/monero"]
-          ports:
-            - name: rpc
-              containerPort: {{ .Values.service.rpcPort }}
-              protocol: TCP
-            - name: p2p
-              containerPort: {{ .Values.service.p2pPort }}
-              protocol: TCP
-          env:
-            - name: RPC_BIND_PORT
-              value: "{{ .Values.service.rpcPort }}"
-            - name: P2P_BIND_PORT
-              value: "{{ .Values.service.p2pPort }}"
-          {{ end }}
-            - name: RPC_BIND_IP
-              value: "0.0.0.0"
-            - name: P2P_BIND_IP
-              value: "0.0.0.0"
-            - name: RPC_USER
-              value: "{{ .Values.monero.rpcUser  }}"
-            - name: RPC_PASSWORD
-              value: "{{ .Values.monero.rpcPassword  }}"
-            - name: LOG_LEVEL
-              value: "{{ .Values.monero.logLevel }}"
           volumeMounts:
-            - name: monero-data
-              mountPath: /monero
+            - name: data
+              mountPath: {{ .Values.volumes.data.mountPath }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       volumes:
-      - name: monero-data
-        persistentVolumeClaim:
-          claimName: monero-pvc
-      securityContext:
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
+        {{- if and .Values.persistence.enabled .Values.persistence.existingClaim }}
+        - name: data
+          persistentVolumeClaim:
+        {{- with .Values.persistence.existingClaim }}
+            claimName: {{ tpl . $ }}
+        {{- end }}
+        {{- else if and .Values.persistence.enabled .Values.persistence.hostPath }}
+        - name: data
+          hostPath:
+            path: {{ .Values.persistence.hostPath.path }}
+            type: {{ .Values.persistence.hostPath.type }}
+        {{- else if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- else if and .Values.persistence.enabled (not .Values.persistence.existingClaim) }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      {{- with .Values.persistence.annotations }}
+        annotations:
+        {{- range $key, $value := . }}
+            {{ $key }}: {{ $value }}
+        {{- end }}
+      {{- end }}
+      spec:
+        accessModes:
+        {{- range .Values.persistence.accessModes }}
+          - {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size | quote }}
+        {{ include "monero.storageClass" . }}
+  {{- end }}

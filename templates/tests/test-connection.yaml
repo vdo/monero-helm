@@ -11,6 +11,5 @@ spec:
     - name: curl
       image: curlimages/curl
       command: ['curl']
-      args: ['-s','-X','POST','http://{{ include "monero.fullname" . }}:{{ .Values.service.port }}/json_rpc',
-      '-d','"{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"get_info\"}"','-H', 'Content-Type: application/json']
+      args: ['-d','{"jsonrpc":"2.0","id":"0","method":"get_info"}','http://{{ include "monero.fullname" . }}:{{ .Values.service.rpc }}/json_rpc']
   restartPolicy: Never
