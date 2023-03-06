@@ -106,7 +106,7 @@
                 "title": "rpc",
                 "form": true
               },
-              "rpc-restricted": {
+              "rpcrestricted": {
                 "type": "integer",
                 "title": "rpc-restricted",
                 "form": true
@@ -116,7 +116,7 @@
                 "title": "zmq",
                 "form": true
               },
-              "zmq-pub": {
+              "zmqpub": {
                 "type": "integer",
                 "title": "zmq-pub",
                 "form": true
@@ -140,7 +140,7 @@
             "title": "rpc",
             "form": true
           },
-          "rpc-restricted": {
+          "rpcrestricted": {
             "type": "integer",
             "title": "rpc-restricted",
             "form": true
@@ -150,7 +150,7 @@
             "title": "zmq",
             "form": true
           },
-          "zmq-pub": {
+          "zmqpub": {
             "type": "integer",
             "title": "zmq-pub",
             "form": true
