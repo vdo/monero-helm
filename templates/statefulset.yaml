@@ -61,6 +61,12 @@ spec:
             {{- if  .Values.config.prune }}
             "--prune-blockchain",
             {{- end }}
+            {{- if eq .Values.config.network "testnet" }}
+            "--testnet",
+            {{- end }}
+            {{- if eq .Values.config.network "stagenet" }}
+            "--stagenet",
+            {{- end }}
             ]
           args: 
             {{- toYaml .Values.image.args | nindent 12 }}

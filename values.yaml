@@ -10,7 +10,7 @@ image:
   args: [] 
 
 config:
-  network:
+  network: mainnet
   zmq: true
   prune: false
 
